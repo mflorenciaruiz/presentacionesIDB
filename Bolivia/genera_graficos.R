@@ -1556,7 +1556,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
 }
 
 
-## 3.6) Crecimiento de sectores
+## 3.8) Crecimiento de sectores
 {
   # df para bolivia, indicadores de sectores
   df <- labor_sectors %>%
