@@ -22,6 +22,7 @@ library(tidyr)
 library(ragg)
 library(ggrepel)
 library(readr)
+library(stringr)
 
 # --------------
 # 0) Cargar datos
@@ -146,7 +147,7 @@ labor_sectors <- labor_sectors %>%
   )
 
 # Data de pbi con poryecciones
-gdp <- read_csv(file.path(data2, "gdp_real_andinos.csv")) %>% 
+gdp <- read_csv(file.path(data2, "gdp_pc_vecinos.csv")) %>% 
   select(-1) %>% 
   rename(country = 1) %>% 
   filter(!is.na(country))
@@ -756,7 +757,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
 {
   # df para gini con paises andinos y laram
   df <- gini %>% 
-    filter(Country == "Bolivia" | Country == "Colombia" | Country == "Ecuador" | 
+    filter(Country == "Bolivia" | Country == "Colombia" | Country == "Paraguay" | 
              Country == "Peru" 
              #Country == "Latin America and the Caribbean"
              ) %>% 
@@ -774,9 +775,9 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
   pal <- c("Bolivia"   = "#34a0a4",
            #"Latin America and the Caribbean" = "grey75",
            "Colombia"  = "grey75",
-           "Ecuador"   = "grey75",
-           "Peru"      = "grey75"
-           #"Paraguay"  = "grey75"
+           #"Ecuador"   = "grey75",
+           "Peru"      = "grey75",
+           "Paraguay"  = "grey75"
   )
   
   # valor incial
@@ -788,6 +789,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
   
   # valor final
   end_lab <- df %>% 
+    filter(year <= 2025) %>% 
     filter(Country == "Bolivia") %>%
     group_by(Country) %>%
     slice_max(year, with_ties = FALSE) %>%
@@ -795,12 +797,14 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
   
   # Nombres de series
   series_lab <- df %>% 
+    filter(year <= 2025) %>% 
     group_by(Country) %>%
     slice_max(year, with_ties = FALSE)
   
   # Grafico
   min_x  <- min(df$year, na.rm = TRUE)            
   max_x  <- max(df$year, na.rm = TRUE)
+  max_x <- 2025
   (min_y  <- min(df$gini, na.rm = TRUE))
   (max_y  <- max(df$gini, na.rm = TRUE))
   
@@ -809,9 +813,12 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     geom_line(df %>% filter(year <= 2025), 
                 , mapping = aes(x= year, y= gini, color = Country, group = Country), 
               linewidth = 1.2)+
+    geom_point(df %>% filter(year <= 2025),
+               mapping = aes(x= year, y= gini, color = Country, group = Country),
+               size = 1.5) +
     # lineas punteadas para proyecciones
-    geom_line(df %>% filter(year > 2024), linetype = "dotted", linewidth = 1.2,
-              mapping = aes(x= year, y= gini, color = Country, group = Country)) +
+    #geom_line(df %>% filter(year > 2024), linetype = "dotted", linewidth = 1.2,
+    #          mapping = aes(x= year, y= gini, color = Country, group = Country)) +
     
     # valor final
     geom_text(data = end_lab, aes(x= year, y= gini,
@@ -825,7 +832,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     # Etiquetas a las series
     geom_text(data = series_lab,
               aes(x= year, y= gini, label = country_lab, color = Country),
-              vjust = -0.6, lineheight = 0.8,
+              vjust = -0.7, lineheight = 0.8,
               size = 4, fontface = "bold", show.legend = FALSE) +
     
     scale_color_manual(values = pal) +
@@ -837,20 +844,21 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
                        expand = expansion(mult = c(0.02, 0))) +
     scale_x_continuous(
                        #limits = c(2005, 2023), 
-                       breaks = seq(2022, 2027, 1),
+                       breaks = seq(2022, 2025, 1),
                        #expand = expansion(mult = c(0.02, 0.02))
     ) +
     theme_classic() +
     theme(axis.text = element_text(color = "black", size = 12),
           axis.title = element_text(color = "black", size = 13),
           axis.line.y = element_blank(),
-          panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+          panel.grid = element_blank(),
+          #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
           plot.margin = margin(25, 45, 10, 10)) +
     coord_cartesian(clip = "off")
   
   # Guardo el gráfico
   ggsave(
-    filename = file.path(plots_path, "gini_forcast.png"),
+    filename = file.path(plots_path, "gini2.png"),
     device   = ragg::agg_png,    
     width    = 8,                  
     height   = 4.5,               
@@ -917,7 +925,8 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
       legend.key.size = unit(9, "pt"),
       legend.spacing.x = unit(20, "pt"),
       axis.line.y = element_blank(),
-      panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+      panel.grid = element_blank(),
+      #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
       plot.margin = margin(10, 20, 10, 10))
   
   # Guardo el gráfico
@@ -974,7 +983,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     scale_fill_manual(values = pal) +
     scale_y_continuous(breaks = pretty(df$value, n = 6)) +
     scale_x_continuous(breaks = pretty(df$year, n = 10)) +
-    labs(x = NULL, y = "% of GDP", fill = NULL) +
+    labs(x = NULL, y = "Enviromental taxes (% of GDP)", fill = NULL) +
     theme_classic() +
     guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
     theme(
@@ -985,7 +994,8 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
       legend.key.size = unit(9, "pt"),
       legend.spacing.x = unit(20, "pt"),
       axis.line.y = element_blank(),
-      panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+      panel.grid = element_blank(),
+      #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
       plot.margin = margin(10, 20, 10, 10))
   
   # Guardo el gráfico
@@ -1414,8 +1424,9 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
 {
   pal <- c("Bolivia"   = "#34a0a4",
            "Colombia"  = "grey75",
-           "Ecuador"   = "grey75",
-           "Peru"      = "grey75")
+           #"Ecuador"   = "grey75",
+           "Peru"      = "grey75",
+           "Paraguay"    = "grey75")
   
   # valor incial
   start_lab <- gdp %>% 
@@ -1425,18 +1436,21 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
   
   # valor final
   end_lab <- gdp %>% 
+    filter(year <= 2025) %>%
     filter(country == "Bolivia") %>%
     slice_max(year, with_ties = FALSE) %>%
     mutate(lbl = sprintf("%.0f", gdp_pc_real))
   
   # Nombres de series
   series_lab <- gdp %>% 
+    filter(year <= 2025) %>%
     group_by(country) %>%
     slice_max(year, with_ties = FALSE)
   
   # Grafico
   min_x  <- min(gdp$year)            
   max_x  <- max(gdp$year)
+  max_x <- 2025
   (min_y  <- min(gdp$gdp_pc_real))
   (max_y  <- max(gdp$gdp_pc_real))
 
@@ -1445,9 +1459,9 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     geom_line(data = gdp %>% filter(year <= 2025),
               aes(year, gdp_pc_real, color = country, group = country), linewidth = 1.2) +
     # lineas punteadas para valores proyectados
-    geom_line(data = gdp %>% filter(year >= 2025),
-              aes(year, gdp_pc_real, color = country, group = country),
-              linetype = "dotted", linewidth = 1.15, show.legend = FALSE) +
+    #geom_line(data = gdp %>% filter(year >= 2025),
+    #          aes(year, gdp_pc_real, color = country, group = country),
+    #          linetype = "dotted", linewidth = 1.15, show.legend = FALSE) +
     # etiquetas
     geom_text_repel(
       data = series_lab,
@@ -1461,17 +1475,21 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
       fontface = "bold"
     ) +
     # ejes y tema
-    scale_x_continuous(limits = c(2000, 2028),
-                       breaks = seq(2000, 2027, 3),
+    scale_x_continuous(limits = c(2000, 2026),
+                       breaks = seq(2000, 2025, 3),
                        expand = expansion(mult = c(0.02, 0.1))
                        ) +
+    scale_y_continuous(limits = c(1000, 8000),
+                       breaks = seq(1000, 8000, 1000)
+    ) +
     scale_color_manual(values = pal) + guides(color = "none") +
     labs(x = "Year", y = "GDP per capita (Millions 2015 real USD)") +
     theme_classic()+
     theme(axis.text = element_text(color = "black", size = 12),
           axis.title = element_text(color = "black", size = 13),
           axis.line.y = element_blank(),
-          panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+          panel.grid = element_blank(),
+          #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
           plot.margin = margin(25, 45, 10, 10)) +
     coord_cartesian(clip = "off")
   
