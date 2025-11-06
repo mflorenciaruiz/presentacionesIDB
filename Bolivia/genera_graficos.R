@@ -21,6 +21,7 @@ library(dplyr)
 library(tidyr)
 library(ragg)
 library(ggrepel)
+library(readr)
 
 # --------------
 # 0) Cargar datos
@@ -31,7 +32,7 @@ showtext_opts(dpi = 300)   # que showtext use el mismo dpi de exportación
 
 # Rutas
 data                <- "/Users/florenciaruiz/BID 2/IDB-Data"
-main                <- "/Users/florenciaruiz/BID 2/Bolivia" 
+main                <- "/Users/florenciaruiz/BID 2/presentacionesIDB/Bolivia" 
 data2               <- file.path(main, "Data")
 data_processed_path <- file.path(data, "Data_Processed")
 plots_path          <-  file.path(main, "Plots")
@@ -57,8 +58,8 @@ data_bol <- data.frame(
   pov_420       = c(10.2, 9.3, 7.9, 5.8, 6.6, 5.5, 5.7, 5.1, 5.5, 6.5, 7.5, 8.6),
   pov_830       = c(23.7, 23.1, 21.3, 17.8, 19.5, 17.1, 18.5, 16.5, 17.2, 18.4, 19.9, 21.1),
   infla_average = c(3.6, 2.8, 2.3, 1.8, 0.9, 0.7, 1.7, 2.6, 5.1, 30.0, 35, 40),
-  gdp_growth    = c(4.3, 4.2, 4.2, 2.2, -8.7, 6.1, 3.6, 3.1, 0.7, -0.5, -1.1, -1.5),
-  gdp_g_pc_r    = c(2.7, 2.7, 2.7, 0.8, -9.9, 5.0, 2.4, 1.7, -0.6, -1.8)
+  gdp_growth    = c(4.3, 4.2, 4.2, 2.2, -8.7, 6.1, 3.6, 3.1, 0.7, -0.5, -1.1, -1.5)
+  #gdp_g_pc_r    = c(2.7, 2.7, 2.7, 0.8, -9.9, 5.0, 2.4, 1.7, -0.6, -1.8)
 )
 
 # Proyecciones de pobreza
@@ -424,10 +425,17 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     mutate(lbl = sprintf("%.0f", pov_rate))
   
   # Valor final
-  end_lab <- df %>% group_by(indicator) %>% slice_max(year, with_ties = FALSE) %>% ungroup() %>%
+  end_lab <- df %>% 
+    group_by(indicator) %>% 
+    filter(year<=2025) %>% 
+    slice_max(year, with_ties = FALSE) %>% 
+    ungroup() %>%
     mutate(lbl = sprintf("%.0f", pov_rate))
   
   # X fijo para las etiquetas
+  min_x  <- min(df$year, na.rm = TRUE)            
+  #max_x  <- max(df$year, na.rm = TRUE)
+  max_x <- 2025
   x_pad <- diff(range(df$year)) * 0.10
   x_lab <- max_x + 0.8 * x_pad   # el 70% del padding derecho
   end_lab <- end_lab %>% mutate(x_lab = x_lab)
@@ -437,8 +445,6 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
            "Lower middle-income poverty rate ($3.65 in 2017 PPP)" = "#0A2043",
            "Upper middle-income poverty rate ($6.85 in 2017 PPP)" = "#1e6091")
   
-  min_x  <- min(df$year, na.rm = TRUE)            
-  max_x  <- max(df$year, na.rm = TRUE)
   min(df$pov_rate, na.rm = TRUE)  
   max(df$pov_rate, na.rm = TRUE)  
   
@@ -449,11 +455,12 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
               aes(year, pov_rate, color = indicator, group = indicator)) +
     
     # Linea punteada para valores proyectados
-    geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
-              aes(year, pov_rate, color = indicator, group = indicator), show.legend = FALSE) +
+    #geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
+    #          aes(year, pov_rate, color = indicator, group = indicator), show.legend = FALSE) +
     
     # Puntos
-    geom_point(data = df, aes(year, pov_rate, color = indicator, group = indicator), show.legend = FALSE, size = 1.4) +
+    geom_point(data = df %>% filter(year <= 2025),
+               aes(year, pov_rate, color = indicator, group = indicator), show.legend = FALSE, size = 1.4) +
     
     # valor final
     geom_text(data = end_lab,
@@ -466,7 +473,6 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
               vjust = 1.8, size = 4, fontface = "bold", show.legend = FALSE) +
     
     # Nombre de la serie
-
     geom_text(
       data = end_lab,
       aes(x = x_lab, y = pov_rate, label = indicator_lab, color = indicator),
@@ -479,18 +485,20 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     labs(x = "Year", y = "% of people in poverty") +
     scale_y_continuous(limits = c(0, 30), breaks = seq(0, 30, 5),
                        expand = expansion(mult = 0)) +
-    scale_x_continuous(limits = c(min_x, max_x + x_pad),
-                       expand = expansion(mult = c(0.02, 0.02))) +
+    scale_x_continuous(limits = c(min_x, 2025 + x_pad),
+                       expand = expansion(mult = c(0.02, 0.02))
+                       ) +
     theme_classic(base_size = 14) +
     theme(axis.text = element_text(color = "black", size = 13),
           axis.title = element_text(color = "black", size = 14),
           axis.line.y = element_blank(),
-          panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+          panel.grid = element_blank(),
+          #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
           plot.margin = margin(10, 160, 10, 10)) +
     coord_cartesian(clip = "off")
   
   ggsave(
-    filename = file.path(plots_path, "pobreza_ppp.png"),
+    filename = file.path(plots_path, "pobreza_ppp2.png"),
     device   = ragg::agg_png,    
     width    = 8,                  
     height   = 4.5,               
@@ -1052,7 +1060,9 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     mutate(lbl = sprintf("%.1f", infla_average))
   
   # Valor final
-  end_lab <- df %>% slice_max(year, with_ties = FALSE) %>%
+  end_lab <- df %>% 
+    filter(year <= 2025) %>% 
+    slice_max(year, with_ties = FALSE) %>%
     mutate(lbl = sprintf("%.1f", infla_average))
   
   # Gráfico
@@ -1062,38 +1072,42 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
               aes(year, infla_average), color = "#34a0a4") +
     
     # Linea punteada para valores proyectados
-    geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
-              aes(year, infla_average), color = "#34a0a4", show.legend = FALSE) +
+    #geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
+    #          aes(year, infla_average), color = "#34a0a4", show.legend = FALSE) +
     
     # Puntos
-    geom_point(data = df, aes(year, infla_average), color = "#34a0a4", show.legend = FALSE, size = 1.4) +
+    geom_point(data = df %>% filter(year <= 2025),
+               aes(year, infla_average), color = "#34a0a4", show.legend = FALSE, size = 1.4) +
     
     # valor final
     geom_text(data = end_lab,
               aes(x = year, y = infla_average, label = lbl),  color = "#34a0a4",
-              hjust = -0.8, vjust = 0.1, size = 4, show.legend = FALSE, fontface = "bold") +
+              hjust = -0.5, vjust = 0.1, size = 4, show.legend = FALSE, fontface = "bold") +
     
     # valor inicial
     geom_text(data = start_lab,  color = "#34a0a4",
               aes(x = year, y = infla_average, label = lbl),
               vjust = 1.8, size = 4, fontface = "bold", show.legend = FALSE) +
     
-    scale_y_continuous(limits = c(0, 40), breaks = seq(0, 40, 5),
+    scale_y_continuous(limits = c(0, 35), breaks = seq(0, 35, 5),
                        expand = expansion((mult = c(0.05, 0.07)))) +
-    scale_x_continuous(limits = c(min(df$year)-0.5, max(df$year)+0.5),
-                       expand = expansion((mult = c(0.09, 0.09)))) +
+    scale_x_continuous(limits = c(min(df$year)-0.5, 2025+0.5),
+                       breaks = seq(2015, 2025, 1),
+                       #expand = expansion((mult = c(0.09, 0.09)))
+                       ) +
     guides(color = "none") +
     labs(x = "Year", y = "Inflation (annual average %)") +
     theme_classic() +
     theme(axis.text = element_text(color = "black", size = 13),
           axis.title = element_text(color = "black", size = 14),
           axis.line.y = element_blank(),
-          panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+          panel.grid = element_blank(),
+          #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
           plot.margin = margin(10, 10, 10, 10))
     
   # Guardo el gráfico
   ggsave(
-    filename = file.path(plots_path, "inflacion_forecast.png"),
+    filename = file.path(plots_path, "inflacion2.png"),
     device   = ragg::agg_png,    
     width    = 8,                  
     height   = 4.5,               
@@ -1273,7 +1287,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     mutate(lbl = sprintf("%.1f", ca_pctgdp))
   
   # punto final
-  end_lab <- df %>% slice_max(year, with_ties = FALSE) %>%
+  end_lab <- df %>% filter(year <= 2025) %>% slice_max(year, with_ties = FALSE) %>%
     mutate(lbl = sprintf("%.1f", ca_pctgdp))
   
   # Gráfico
@@ -1283,17 +1297,17 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
               aes(year, ca_pctgdp), color = "#34a0a4") +
     
     # Linea punteada para valores proyectados
-    geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
-              aes(year, ca_pctgdp), color = "#34a0a4", show.legend = FALSE) +
+    #geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
+    #          aes(year, ca_pctgdp), color = "#34a0a4", show.legend = FALSE) +
     
     # Puntos
-    geom_point(data = df, aes(year, ca_pctgdp), color = "#34a0a4", show.legend = FALSE, size = 1.4) +
+    geom_point(data = df %>% filter(year <= 2025), aes(year, ca_pctgdp), color = "#34a0a4", show.legend = FALSE, size = 1.4) +
     
     # linea punteada en el cero
     geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
     
     # valor final
-    geom_text(data = end_lab,
+    geom_text(data = end_lab ,
               aes(x = year, y = ca_pctgdp, label = lbl),  color = "#34a0a4",
               hjust = -0.8, vjust = 0.1, size = 4, show.legend = FALSE, fontface = "bold") +
     
@@ -1303,21 +1317,23 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
               vjust = 1.8, size = 4, fontface = "bold", show.legend = FALSE) +
     
     scale_y_continuous(limits = c(-7, 5), breaks = seq(-6, 5, 2)) +
-    scale_x_continuous(limits = c(min(df$year)-0.5, max(df$year)+0.5),
-                       breaks = seq(2000, 2027, 1),
-                       expand = expansion((mult = c(0.09, 0.09)))) +
+    scale_x_continuous(limits = c(min(df$year)-0.5, 2025+0.5),
+                       breaks = seq(2000, 2025, 1)
+                       #expand = expansion((mult = c(0.09, 0.02)))
+                       ) +
     guides(color = "none") +
     labs(x = "Year", y = "Current account balance (% of GDP) ") +
     theme_classic() +
     theme(axis.text = element_text(color = "black", size = 13),
           axis.title = element_text(color = "black", size = 14),
           axis.line.y = element_blank(),
-          panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+          panel.grid.minor.y = element_blank(),
+          #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
           plot.margin = margin(10, 10, 10, 10))
   
   # Guardo el gráfico
   ggsave(
-    filename = file.path(plots_path, "balance_forecast.png"),
+    filename = file.path(plots_path, "balance2.png"),
     device   = ragg::agg_png,    
     width    = 8,                  
     height   = 4.5,               
@@ -1337,7 +1353,9 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     mutate(lbl = sprintf("%.1f", gdp_growth))
   
   # punto final
-  end_lab <- df %>% slice_max(year, with_ties = FALSE) %>%
+  end_lab <- df %>% 
+    filter(year <= 2025) %>% 
+    slice_max(year, with_ties = FALSE) %>%
     mutate(lbl = sprintf("%.1f", gdp_growth))
   
   # Gráfico
@@ -1347,8 +1365,8 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
               aes(year, gdp_growth), color = "#34a0a4") +
     
     # Linea punteada para valores proyectados
-    geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
-              aes(year, gdp_growth), color = "#34a0a4", show.legend = FALSE) +
+    #geom_line(data = df %>% filter(year > 2024), linetype = "dashed", linewidth = 1.2,
+    #          aes(year, gdp_growth), color = "#34a0a4", show.legend = FALSE) +
     
     # Puntos
     geom_point(data = df, aes(year, gdp_growth), color = "#34a0a4", show.legend = FALSE, size = 1.4) +
@@ -1368,8 +1386,8 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     
     scale_y_continuous(limits = c(min(df$gdp_growth), max(df$gdp_growth)), 
                        breaks = seq(-8, 8, 2)) +
-    scale_x_continuous(limits = c(min(df$year)-0.5, max(df$year)+0.5),
-                       breaks = seq(2000, 2027, 1),
+    scale_x_continuous(limits = c(min(df$year)-0.5, 2025+0.5),
+                       breaks = seq(2000, 2025, 1),
                        expand = expansion((mult = c(0.09, 0.09)))) +
     guides(color = "none") +
     labs(x = "Year", y = "GDP growth (annual %)") +
@@ -1377,12 +1395,13 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     theme(axis.text = element_text(color = "black", size = 13),
           axis.title = element_text(color = "black", size = 14),
           axis.line.y = element_blank(),
-          panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
+          panel.grid.minor = element_blank(),
+          #panel.grid.minor.y = element_line(color = "grey90", linewidth = 0.3),
           plot.margin = margin(10, 10, 10, 10))
   
   # Guardo el gráfico
   ggsave(
-    filename = file.path(plots_path, "gdp_growth_forecast.png"),
+    filename = file.path(plots_path, "gdp_growth2.png"),
     device   = ragg::agg_png,    
     width    = 8,                  
     height   = 4.5,               
@@ -1554,7 +1573,6 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     dpi      = 300
   ) 
 }
-
 
 ## 3.8) Crecimiento de sectores
 {
