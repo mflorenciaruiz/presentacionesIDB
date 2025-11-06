@@ -1211,7 +1211,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
                        labels = comma,  
                        expand = expansion(mult = c(0.02, 0))) +
     scale_x_continuous(limits = c(2000, 2027), 
-                       breaks = seq(2000, 2026, 5),
+                       breaks = seq(2000, 2025, 5),
                       #expand = expansion(mult = c(0.02, 0.02))
                       ) +
     theme_classic() +
@@ -1476,7 +1476,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     ) +
     # ejes y tema
     scale_x_continuous(limits = c(2000, 2026),
-                       breaks = seq(2000, 2025, 3),
+                       breaks = seq(2000, 2025, 5),
                        expand = expansion(mult = c(0.02, 0.1))
                        ) +
     scale_y_continuous(limits = c(1000, 8000),
