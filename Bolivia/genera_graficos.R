@@ -1304,7 +1304,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     geom_point(data = df %>% filter(year <= 2025), aes(year, ca_pctgdp), color = "#34a0a4", show.legend = FALSE, size = 1.4) +
     
     # linea punteada en el cero
-    geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+    #geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
     
     # valor final
     geom_text(data = end_lab ,
@@ -1372,7 +1372,7 @@ gdp_growth <- read_xlsx(file.path(data2, "gdp_pc_growth.xlsx"))
     geom_point(data = df, aes(year, gdp_growth), color = "#34a0a4", show.legend = FALSE, size = 1.4) +
     
     # linea punteada en el cero
-    geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+    #geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
     
     # valor final
     geom_text(data = end_lab,
